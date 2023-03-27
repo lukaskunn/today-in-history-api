@@ -1,9 +1,8 @@
 const puppeteer = require("puppeteer")
-const getMonthName = require("../utils/getMonthName")
 const validateDay = require("../utils/validateDate.js")
 const validateLanguage = require("../utils/validateLanguage.js")
 const getStringParam = require("../utils/getStringParam.js")
-
+const getDataStructurePattern = require("../utils/patterns/dataStructurePattern.js")
 class DateController {
 
     static getWikipediaData = async (req, res) => {
@@ -15,8 +14,14 @@ class DateController {
         const langIsValid = validateLanguage(language)
 
         if (dayIsValid && langIsValid) {
-            const monthName = getMonthName(language, month)
             const stringMonthDayURL = getStringParam(language, day, month)
+            const dataStructurePattern = getDataStructurePattern(language)
+
+            const currentStateMarker = {
+                [dataStructurePattern.acceptableValues[0]]: "historical_events",
+                [dataStructurePattern.acceptableValues[1]]: "births",
+                [dataStructurePattern.acceptableValues[2]]: "deaths",
+            }
 
             const browser = await puppeteer.launch()
             const page = await browser.newPage()
@@ -27,6 +32,13 @@ class DateController {
             })
 
             await page.waitForSelector('div.mw-parser-output');
+
+            const returnedEvents = await page.$$eval('div.mw-parser-output > ul, div.mw-parser-output > h2', rows => {
+                return Array.from(rows, row => {
+                    const col = row.querySelectorAll('li, span.mw-headline')
+                    return Array.from(col, c => c.textContent.trim().replace(/['"]+/g, ''))
+                })
+            })
 
             const eventsObj = {
                 historical_events: {
@@ -43,63 +55,27 @@ class DateController {
                 }
             }
 
-            const titles = await page.$$eval('div.mw-parser-output > h2', rows => {
-                return Array.from(rows, row => {
-                    const col = row.querySelectorAll('span.mw-headline')
-                    return Array.from(col, c => c.textContent.trim().replace(/['"]+/g, ''))
-                })
-            })
+            let currentState = "historical_events"
 
-            for (let i = 0; i < eventsObj.length; i++) {
-                eventsObj[i].title = titles[i][0]
+            for (let i = 0; i < returnedEvents.length; i++) {
+                if (returnedEvents[i][0] == dataStructurePattern.finishTag) {
+                    break
+                } else {
+                    if (dataStructurePattern.acceptableValues.includes(returnedEvents[i][0])) {
+                        currentState = currentStateMarker[returnedEvents[i][0]]
+                        eventsObj[currentState].title = returnedEvents[i][0]
+                    } else {
+                        returnedEvents[i].map((uniqueEvent) => {
+                            eventsObj[currentState].events.push(uniqueEvent)
+                        })
+                    }
+                }
             }
 
-            const events = await page.$$eval('div.mw-parser-output > ul', rows => {
-                return Array.from(rows, row => {
-                    const col = row.querySelectorAll('li')
-                    return Array.from(col, c => c.textContent.trim().replace(/['"]+/g, ''))
-                })
-            })
-
-            console.log(events)
-
-            events[0].map((uniqueEvent) => {
-                eventsObj.historical_events.events.push(uniqueEvent)
-            })
-            events[1].map((uniqueEvent) => {
-                eventsObj.historical_events.events.push(uniqueEvent)
-            })
-            events[2].map((uniqueEvent) => {
-                eventsObj.historical_events.events.push(uniqueEvent)
-            })
-
-            events[3].map((uniqueEvent) => {
-                eventsObj.births.events.push(uniqueEvent)
-            })
-            events[4].map((uniqueEvent) => {
-                eventsObj.births.events.push(uniqueEvent)
-            })
-            events[5].map((uniqueEvent) => {
-                eventsObj.births.events.push(uniqueEvent)
-            })
-
-            events[6].map((uniqueEvent) => {
-                eventsObj.deaths.events.push(uniqueEvent)
-            })
-            events[7].map((uniqueEvent) => {
-                eventsObj.deaths.events.push(uniqueEvent)
-            })
-            events[8].map((uniqueEvent) => {
-                eventsObj.deaths.events.push(uniqueEvent)
-            })
 
             res.status(200).send({ content: eventsObj })
 
-            console.log(titles)
-
             await browser.close()
-            console.log(monthName)
-            console.log(stringMonthDayURL)
         } else {
             res.status(400).send({
                 message: `wrong url param, please check and send request again`, params: {
