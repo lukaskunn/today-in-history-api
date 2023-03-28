@@ -16,6 +16,7 @@ class DateController {
         if (dayIsValid && langIsValid) {
             const stringMonthDayURL = getStringParam(language, day, month)
             const dataStructurePattern = getDataStructurePattern(language)
+            const charCodeSplit = language == "pt" ? "—" : "–"
 
             const currentStateMarker = {
                 [dataStructurePattern.acceptableValues[0]]: "historical_events",
@@ -66,7 +67,24 @@ class DateController {
                         eventsObj[currentState].title = returnedEvents[i][0]
                     } else {
                         returnedEvents[i].map((uniqueEvent) => {
-                            eventsObj[currentState].events.push(uniqueEvent)
+                            if (uniqueEvent.split(charCodeSplit)[1] != undefined || uniqueEvent.split("\n")[1] != undefined) {
+                                let resultObject = {
+                                    year: "",
+                                    [currentState == "historical_events" ? "events" : "peoples"]: []
+                                }
+
+                                if (uniqueEvent.split(charCodeSplit)[1] != undefined) {
+                                    resultObject.year = uniqueEvent.split(charCodeSplit)[0].trim()
+                                    resultObject[currentState == "historical_events" ? "events" : "peoples"].push(uniqueEvent.split(charCodeSplit)[1].split("[")[0].trim())
+                                } else if (uniqueEvent.split("\n")[1] != undefined) {
+                                    resultObject.year = uniqueEvent.split("\n")[0].trim()
+                                    for (let k = 1; k < uniqueEvent.split("\n").length; k++) {
+                                        resultObject[currentState == "historical_events" ? "events" : "peoples"].push(uniqueEvent.split("\n")[k].split("[")[0].trim())
+                                    }
+                                }
+
+                                eventsObj[currentState].events.push(resultObject)
+                            }
                         })
                     }
                 }
