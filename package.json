@@ -1,6 +1,6 @@
 {
   "name": "today-in-history-api",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "main": "index.js",
   "repository": "https://github.com/lukaskunn/today-in-history-api.git",
   "author": "lukaskunn <lucassioliveira098@gmail.com>",
