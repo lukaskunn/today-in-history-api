@@ -2,7 +2,7 @@
 
 Welcome to the Today in History API! This API provides a list of historical events that occurred on the current day in history. It is perfect for use in educational applications, trivia games, or any other project that requires information about historical events. This project as build with the proposal of understand some backend scenarios, to lean more about build an API and to understand how to deploy a backend application. This Project has built using [Node.js](https://nodejs.org/en) with express and [puppeteer](https://pptr.dev)
 
-This API as hosted on the following link: [today-in-history-api-pi.vercel.app](today-in-history-api-pi.vercel.app)
+This API as hosted on the following link: [today-in-history-api-pi.vercel.app](https://today-in-history-api-pi.vercel.app)
 
 You can use the following endpoints
 - `/en/today` - to get all the historical events on current date
